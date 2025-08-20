@@ -1,60 +1,55 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sat Nov 25 11:01:32 2017
-Update: 2022-03-09 20:15:31
-@author: matrixk
+Converted to Python 3
+Original: 2017-11-25, Updated: 2022-03-09
+Author: matrixk 
+Converted by: Lydia Liu
 """
 import random
+from datetime import datetime, timedelta
 
-f = open('forum_format.md', 'w')
+FLUFLUC = [
+    2.73, 1.66, 1.10, 0.60, 0.14, 0.05, 0.24, 1.64, 3.32, 4.81, 5.56, 5.64,
+    5.53, 5.57, 5.83, 6.00, 6.13, 5.81, 5.68, 6.39, 6.79, 6.59, 5.77, 4.25
+]
 
-def fluctuation(hour_flu):
-    standard = 30
-    flufluc = [2.73, 1.66, 1.10, 0.60, 0.14, 0.05, 0.24, 1.64, 3.32, 4.81, 5.56, 5.64, 5.53, 5.57, 5.83, 6.00, 6.13, 5.81, 5.68, 6.39, 6.79, 6.59, 5.77, 4.25]
-    standard = standard / flufluc[int(hour_flu)]
-    return standard
+def fluctuation(hour_flu: int) -> float:
+    """Return per-floor expected minute range scaled by the hour-of-day."""
+    standard = 30.0
+    return standard / FLUFLUC[int(hour_flu) % 24]
 
-def forum_format(date, hour_start, min_start, sec_start, floor):
-    #set initial
+def forum_format(date_str: str, hour_start: str, min_start: str, sec_start: str, floor: int) -> None:
+    """
+    Generate forum-like timestamp blocks from a start date/time over N floors.
+    Writes to 'forum_format.md'.
+    """
+    start_dt = datetime.strptime(
+        f"{date_str} {hour_start}:{min_start}:{sec_start}",
+        "%Y-%m-%d %H:%M:%S"
+    )
+
     floor_number = 0
-    date_show = date
-    time_hour = int(hour_start)
-    time_min = int(min_start)
-    time_sec = int(sec_start)
-    standard = 30
-    
-    for i in range(floor_number,int(floor)+1):
-        standard = fluctuation(time_hour)
-        f.write (u"\u2116".encode("utf-8")+str(floor_number)+u"\u0020\u2606\u2606\u2606=\u0020=于".encode("utf-8"))
-        f.write (str(date_show) + u"\u0020".encode("utf-8"))
-        f.write (str(time_hour).zfill(2) + ":" + str(time_min).zfill(2) + ":" + str(time_sec).zfill(2) +u"留言\u2606\u2606\u2606".encode("utf-8"))
-        f.write ("\n\n----------\n\n\n\n")
-        floor_number = floor_number + 1
-        time_sec = time_sec + random.randint(1,59)
-        if time_sec >= 60:
-            time_sec = time_sec - 60
-            time_min = time_min + 1
-            
-        time_min = time_min + random.randint(1,int(standard))
-        
-        while time_min >= 60:
-            time_hour = time_hour + 1
-            time_min = time_min - 60
-            
-        while time_hour >= 24:
-            time_hour = time_hour - 24
-            date_day = int(date_show[8:10]) + 1
-            date_show = date_show[0:8]+str(date_day).zfill(2)
+    with open("forum_format.md", "w", encoding="utf-8") as f:
+        for _ in range(floor_number, int(floor) + 1):
+            dt = start_dt
+            line = (
+                f"№{floor_number} ★★★= =于 "
+                f"{dt.strftime('%Y-%m-%d')} "
+                f"{dt.strftime('%H:%M:%S')}留言★★★"
+            )
+            f.write(line + "\n\n----------\n\n\n\n")
 
-    f.close()
+            standard = fluctuation(dt.hour)
+            sec_inc = random.randint(1, 59)
+            min_inc = random.randint(1, max(1, int(standard)))
+            start_dt = start_dt + timedelta(minutes=min_inc, seconds=sec_inc)
 
+            floor_number += 1
 
-
-date_input = raw_input("date: ")
-time_start = raw_input("publish time of the first floor: ")
-hour_input = time_start[0:2]
-min_input = time_start[3:5]
-sec_input = time_start[6:8]
-floor_input = raw_input("floor: ")
-forum_format(date_input, hour_input, min_input, sec_input, floor_input)
+if __name__ == "__main__":
+    date_input = input("date (YYYY-MM-DD): ").strip()
+    time_start = input("publish time of the first floor (HH:MM:SS): ").strip()
+    hour_input, min_input, sec_input = time_start[0:2], time_start[3:5], time_start[6:8]
+    floor_input = int(input("floor (inclusive, starting from 0): ").strip())
+    forum_format(date_input, hour_input, min_input, sec_input, floor_input)
